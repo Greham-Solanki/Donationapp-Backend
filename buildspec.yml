@@ -9,8 +9,8 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Building the Docker image...
-      - docker build -t public.ecr.aws/767397745665/capstone/backend-app:latest .
-      - docker tag public.ecr.aws/767397745665/capstone/backend-app:latest public.ecr.aws/767397745665/capstone/backend-app:latest
+      - docker build -t backend-app:latest .
+      - docker tag backend-app:latest public.ecr.aws/767397745665/capstone/backend-app:latest
       
   post_build:
     commands:
@@ -18,4 +18,3 @@ phases:
       - echo Pushing the Docker image...
       - docker push public.ecr.aws/767397745665/capstone/backend-app:latest
       - printf '[{"name":"backend-container","imageUri":"%s"}]' public.ecr.aws/767397745665/capstone/backend-app:latest > imagedefinitions.json
-      - aws ecs update-service --cluster ${ECS_CLUSTER_NAME} --service ${ECS_SERVICE_NAME} --force-new-deployment
