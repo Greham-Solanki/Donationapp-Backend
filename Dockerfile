@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/node:16
+FROM node:18-alpine
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
