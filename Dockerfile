@@ -13,8 +13,8 @@ RUN npm install
 # Copy the rest of the application files
 COPY . .
 
-# Expose the application's port
-EXPOSE 3000
+# Expose the correct port for your backend
+EXPOSE 5000
 
 # Start the application
 CMD ["node", "server.js"]
