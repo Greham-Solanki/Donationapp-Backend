@@ -3,6 +3,8 @@ FROM node:18-alpine
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
+COPY global-bundle.pem /config/global-bundle.pem
+
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
