@@ -1,5 +1,7 @@
 // server.js
 const mongoose = require('mongoose');
+console.log('Type of connectDB:', typeof connectDB);
+console.log('connectDB function:', connectDB);
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
