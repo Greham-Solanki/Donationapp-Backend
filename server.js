@@ -48,14 +48,30 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/uploads', express.static('uploads'));
 
 
-// Create HTTP server and attach Socket.IO
-const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: 'http://localhost:3000',
-    credentials: true,
-  }
-});
+async function startServer() {
+    try {
+        await connectDB(); // Await the database connection
+        
+        // Rest of your server startup code
+        const server = http.createServer(app);
+        const io = socketIo(server, {
+            cors: {
+                origin: 'http://localhost:3000',
+                credentials: true,
+            }
+        });
+        
+        // Your existing server setup continues...
+        const PORT = process.env.PORT || 5000;
+        server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+// Call the startup function
+startServer();
 
 global.io = io;
 
