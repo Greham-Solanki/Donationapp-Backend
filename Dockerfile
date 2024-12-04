@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 RUN mkdir -p /config
 
 # Copy the global-bundle.pem from the config folder
-COPY global-bundle.pem /config/global-bundle.pem
+COPY config/global-bundle.pem /config/global-bundle.pem
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
