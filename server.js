@@ -1,7 +1,4 @@
 // server.js
-const mongoose = require('mongoose');
-console.log('Type of connectDB:', typeof connectDB);
-console.log('connectDB function:', connectDB);
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -48,30 +45,14 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/uploads', express.static('uploads'));
 
 
-async function startServer() {
-    try {
-        await connectDB(); // Await the database connection
-        
-        // Rest of your server startup code
-        const server = http.createServer(app);
-        const io = socketIo(server, {
-            cors: {
-                origin: 'http://localhost:3000',
-                credentials: true,
-            }
-        });
-        
-        // Your existing server setup continues...
-        const PORT = process.env.PORT || 5000;
-        server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
-    }
-}
-
-// Call the startup function
-startServer();
+// Create HTTP server and attach Socket.IO
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: 'http://localhost:3000',
+    credentials: true,
+  }
+});
 
 global.io = io;
 
