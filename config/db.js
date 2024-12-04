@@ -1,10 +1,8 @@
-// config/db.js
 const mongoose = require('mongoose');
 const fs = require('fs');
 
 const connectDB = async () => {
     try {
-        // Direct connection using environment variables
         const dbURI = process.env.MONGODB_URI;
         
         if (!dbURI) {
@@ -12,7 +10,7 @@ const connectDB = async () => {
             process.exit(1);
         }
 
-        console.log('Attempting to connect to:', dbURI); // Debugging log
+        console.log('Attempting to connect to:', dbURI);
 
         await mongoose.connect(dbURI, {
             useNewUrlParser: true,
@@ -20,7 +18,7 @@ const connectDB = async () => {
             ssl: true,
             sslValidate: true,
             sslCA: fs.readFileSync('/config/global-bundle.pem'),
-            retryWrites: false  // Important for DocumentDB
+            retryWrites: false
         });
         console.log('MongoDB connected successfully');
     } catch (error) {
@@ -30,4 +28,5 @@ const connectDB = async () => {
     }
 };
 
+// IMPORTANT: Use module.exports, not exports.connectDB
 module.exports = connectDB;
