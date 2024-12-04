@@ -1,3 +1,4 @@
+// config/db.js
 const mongoose = require('mongoose');
 const fs = require('fs');
 
@@ -10,6 +11,8 @@ const connectDB = async () => {
             console.error('MONGODB_URI is not defined');
             process.exit(1);
         }
+
+        console.log('Attempting to connect to:', dbURI); // Debugging log
 
         await mongoose.connect(dbURI, {
             useNewUrlParser: true,
