@@ -11,12 +11,12 @@ phases:
       - echo Build started on `date`
       - echo Building the Docker image...
       - docker build -t backend-app:latest .
-      - docker tag backend-app:latest public.ecr.aws/u9j3n1n7/capstone/backend-app:latest
+      - docker tag backend-app:latest public.ecr.aws/767397745665/capstone/backend-app:latest
 
   post_build:
     commands:
       - echo Build completed on `date`
       - echo Pushing the Docker image...
-      - docker push public.ecr.aws/u9j3n1n7/capstone/backend-app:latest
+      - docker push public.ecr.aws/767397745665/capstone/backend-app:latest
       - echo Verifying image push...
-      - aws ecr-public describe-images --repository-name capstone/backend-app --registry-id u9j3n1n7
+      - aws ecr-public describe-images --repository-name capstone/backend-app --registry-id 767397745665
