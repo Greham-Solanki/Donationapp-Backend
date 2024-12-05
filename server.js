@@ -24,7 +24,7 @@ app.use((req, res, next) => {
 });
 // CORS options
 const corsOptions = {
-  origin: 'http://localhost:3000',
+  origin: 'http://frontend-alb-1907579939.us-east-1.elb.amazonaws.com',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
