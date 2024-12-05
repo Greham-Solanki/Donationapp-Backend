@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 });
 // CORS options
 const corsOptions = {
-  origin: 'http://frontend-alb-1907579939.us-east-1.elb.amazonaws.com',
+  origin: 'http://frontend-alb-1907579939.us-east-1.elb.amazonaws.com:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
