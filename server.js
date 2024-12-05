@@ -56,7 +56,7 @@ app.use('/uploads', express.static('uploads'));
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: 'http://frontend-alb-1907579939.us-east-1.elb.amazonaws.com:3000',
     credentials: true,
   }
 });
