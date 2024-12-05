@@ -19,6 +19,7 @@ const app = express();
 connectDB(); // Connect to the database
 
 app.get('/health', (req, res) => {
+  console.log('Health check route accessed');
   res.status(200).json({ 
     status: 'healthy', 
     uptime: process.uptime() 
