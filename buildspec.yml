@@ -20,3 +20,11 @@ phases:
       - docker push public.ecr.aws/767397745665/capstone/backend-app:latest
       - echo Verifying image push...
       - aws ecr-public describe-images --repository-name capstone/backend-app --registry-id 767397745665
+      - echo Creating imagedefinitions.json...
+      - printf '[{"name":"backend-container","imageUri":"public.ecr.aws/u9j3n1n7/capstone/backend-app:latest"}]' > imagedefinitions.json
+
+      
+  artifacts:
+  files:
+    - '/*'                 # Include all files in the current directory
+    - imagedefinitions.json   # Explicitly include the imagedefinitions.json file
