@@ -23,8 +23,7 @@ phases:
       - echo Creating imagedefinitions.json...
       - printf '[{"name":"backend-container","imageUri":"public.ecr.aws/767397745665/capstone/backend-app:latest"}]' > imagedefinitions.json
 
-      
-  artifacts:
+artifacts:
   files:
-    - '/*'                 # Include all files in the current directory
-    - imagedefinitions.json   # Explicitly include the imagedefinitions.json file
+    - '**/*'                 # Include all files in the current directory
+    - imagedefinitions.json  # Explicitly include the imagedefinitions.json file
