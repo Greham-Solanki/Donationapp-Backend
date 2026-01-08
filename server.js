@@ -1,4 +1,3 @@
-// ✅ CI/CD Pipeline Working! Auto-deployed from GitHub Actions
 // // server.js
 require('dotenv').config();
 const express = require('express');
