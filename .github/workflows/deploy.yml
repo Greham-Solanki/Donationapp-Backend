@@ -1,0 +1,113 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Create SSH key file
+        run: |
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+      
+      - name: Deploy to EC2
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          USERNAME: ${{ secrets.EC2_USERNAME }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USERNAME}@${HOST} << 'ENDSSH'
+            set -e
+            
+            echo "=========================================="
+            echo "🚀 Starting Backend Deployment"
+            echo "=========================================="
+            
+            cd ~/Donationapp-Backend
+            
+            echo ""
+            echo "📥 Pulling latest code from GitHub..."
+            git pull origin main || { echo "❌ Git pull failed"; exit 1; }
+            
+            echo ""
+            echo "📦 Installing dependencies..."
+            npm install --production || { echo "❌ npm install failed"; exit 1; }
+            
+            echo ""
+            echo "🔄 Restarting PM2 process..."
+            pm2 restart donation-backend || pm2 start server.js --name donation-backend
+            
+            echo ""
+            echo "📊 PM2 Status:"
+            pm2 status
+            
+            echo ""
+            echo "📝 Recent logs:"
+            pm2 logs donation-backend --lines 10 --nostream
+            
+            echo ""
+            echo "=========================================="
+            echo "✅ Backend Deployment Complete!"
+            echo "=========================================="
+          ENDSSH
+      
+      - name: Update Environment Variables
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          USERNAME: ${{ secrets.EC2_USERNAME }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USERNAME}@${HOST} << 'ENDSSH'
+            cd ~/Donationapp-Backend
+            
+            echo "⚙️ Updating environment variables..."
+            
+            cat > .env << 'EOF'
+MONGODB_URI=${{ secrets.MONGODB_URI }}
+AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+AWS_REGION=${{ secrets.AWS_REGION }}
+S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+S3_SIGNED_URL_EXPIRATION=3600
+JWT_SECRET=${{ secrets.JWT_SECRET }}
+PORT=5000
+EOF
+            
+            echo "✅ Environment variables updated!"
+            
+            # Restart to apply new env vars
+            pm2 restart donation-backend
+          ENDSSH
+      
+      - name: Health Check
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          echo "🏥 Running health check..."
+          sleep 5
+          
+          if curl -f http://${HOST}:5000/api/donations > /dev/null 2>&1; then
+            echo "✅ Backend is healthy and responding!"
+          else
+            echo "⚠️ Warning: Backend may not be responding correctly"
+            exit 1
+          fi
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f private_key.pem
+          echo "🧹 Cleaned up SSH key"
