@@ -56,7 +56,18 @@ jobs:
             
             echo ""
             echo "📥 Pulling latest code from GitHub..."
-            git pull origin main || { echo "❌ Git pull failed"; exit 1; }
+            
+            # Stash any local changes
+            if ! git diff-index --quiet HEAD --; then
+              echo "⚠️ Local changes detected, stashing..."
+              git stash
+            fi
+            
+            # Fetch and reset to match GitHub
+            git fetch origin main
+            git reset --hard origin/main
+            
+            echo "✅ Code synchronized with GitHub"
             
             echo ""
             echo "📦 Installing dependencies..."
