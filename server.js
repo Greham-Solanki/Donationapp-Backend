@@ -1,4 +1,4 @@
-// // server.js
+// // server.js :/
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -16,7 +16,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const app = express();
 connectDB(); 
 
-// Request logging middleware  :)
+// Request logging middleware 
 app.use((req, res, next) => {
   console.log(`📨 ${req.method} ${req.url}`);
   next();
