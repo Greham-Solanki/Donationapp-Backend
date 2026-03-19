@@ -1,38 +1,85 @@
-name: Deploy Backend
+name: Deploy backend
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   deploy:
+    name: Deploy to all ASG instances
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repo
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      # Step 2: Configure AWS CLI
-      - name: Configure AWS
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Step 3: Deploy via SSM
-      - name: Deploy to Backend Instances
+      - name: Write SSH key
         run: |
-          aws ssm send-command \
-            --document-name "AWS-RunShellScript" \
-            --targets "Key=tag:App,Values=${{ secrets.INSTANCE_TAG }}" \
-            --parameters 'commands=[
-              "cd /home/ssm-user/Donationapp-Backend",
-              "git pull origin main",
-              "npm install",
-              "pm2 restart all"
-            ]' \
-            --comment "Deploy backend update" \
-            --timeout-seconds 600
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key.pem
+          chmod 600 ~/.ssh/deploy_key.pem
+
+      - name: Add bastion to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.BASTION_IP }} >> ~/.ssh/known_hosts
+
+      - name: Get live instance IPs from ASG
+        id: get-ips
+        run: |
+          INSTANCE_IDS=$(aws autoscaling describe-auto-scaling-groups \
+            --auto-scaling-group-names ${{ secrets.ASG_NAME }} \
+            --query 'AutoScalingGroups[0].Instances[?LifecycleState==`InService`].InstanceId' \
+            --output text)
+
+          PRIVATE_IPS=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_IDS \
+            --query 'Reservations[].Instances[].PrivateIpAddress' \
+            --output text)
+
+          echo "ips=$PRIVATE_IPS" >> $GITHUB_OUTPUT
+          echo "Found instances: $PRIVATE_IPS"
+
+      - name: Deploy to each instance
+        env:
+          BASTION_IP: ${{ secrets.BASTION_IP }}
+          PORT: ${{ secrets.PORT }}
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          for IP in ${{ steps.get-ips.outputs.ips }}; do
+            echo "Deploying to $IP..."
+
+            ssh -i ~/.ssh/deploy_key.pem \
+                -o StrictHostKeyChecking=no \
+                -o ConnectTimeout=10 \
+                -o ProxyCommand="ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -W %h:%p ubuntu@$BASTION_IP" \
+                ubuntu@$IP << EOF
+
+              cat > /home/ubuntu/app/.env << 'ENVEOF'
+          PORT=$PORT
+          NODE_ENV=$NODE_ENV
+          MONGODB_URI=$MONGODB_URI
+          JWT_SECRET=$JWT_SECRET
+          ENVEOF
+
+              cd /home/ubuntu/app
+              git pull origin main
+              npm install --omit=dev
+              pm2 restart backend
+              pm2 status
+
+          EOF
+
+            echo "Done with $IP"
+          done
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key.pem
