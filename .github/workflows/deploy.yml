@@ -44,8 +44,7 @@ jobs:
 
           echo "ips=$PRIVATE_IPS" >> $GITHUB_OUTPUT
           echo "Found instances: $PRIVATE_IPS"
-
-      - name: Deploy to each instance
+              - name: Deploy to each instance
         env:
           BASTION_IP: ${{ secrets.BASTION_IP }}
           PORT: ${{ secrets.PORT }}
@@ -60,20 +59,26 @@ jobs:
                 -o StrictHostKeyChecking=no \
                 -o ConnectTimeout=10 \
                 -o ProxyCommand="ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -W %h:%p ubuntu@$BASTION_IP" \
-                ubuntu@$IP << EOF
+                ubuntu@$IP bash << EOF
 
-              cat > /home/ubuntu/app/.env << 'ENVEOF'
+              # Write .env from GitHub secrets
+              cat > /home/ubuntu/Donationapp-Backend/.env << ENVEOF
           PORT=$PORT
           NODE_ENV=$NODE_ENV
           MONGODB_URI=$MONGODB_URI
           JWT_SECRET=$JWT_SECRET
           ENVEOF
 
-              cd /home/ubuntu/app
+              # Verify .env was written
+              echo ".env contents:"
+              cat /home/ubuntu/Donationapp-Backend/.env
+
+              # Deploy
+              cd /home/ubuntu/Donationapp-Backend
               git pull origin main
               npm install --omit=dev
               pm2 restart backend
-              pm2 status
+              pm2 logs backend --lines 10 --nostream
 
           EOF
 
