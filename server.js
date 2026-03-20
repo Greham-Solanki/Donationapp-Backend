@@ -14,7 +14,7 @@ const Message = require('./models/Message');
 const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
-connectDB(); // Connect to the database
+connectDB(); // Connect to the database -
 
 // Request logging middleware
 app.use((req, res, next) => {

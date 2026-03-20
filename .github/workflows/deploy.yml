@@ -56,7 +56,7 @@ jobs:
             -o ConnectTimeout=10 \
             -v \
             ubuntu@${{ secrets.BASTION_IP }} "echo BASTION OK"
-            
+
       - name: Write .env to instances
         run: |
           for IP in ${{ steps.get-ips.outputs.ips }}; do
