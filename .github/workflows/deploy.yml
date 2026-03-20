@@ -46,21 +46,6 @@ jobs:
           echo "ips=$PRIVATE_IPS" >> $GITHUB_OUTPUT
           echo "Found instances: $PRIVATE_IPS"
 
-      - name: Write .env to instances
-        run: |
-          for IP in ${{ steps.get-ips.outputs.ips }}; do
-            echo "Writing .env to $IP..."
-
-            ssh -i ~/.ssh/deploy_key.pem \
-              -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=10 \
-              -o ProxyCommand="ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -W %h:%p ubuntu@${{ secrets.BASTION_IP }}" \
-              ubuntu@$IP \
-              "mkdir -p /home/ubuntu/Donationapp-Backend && printf 'PORT=${{ secrets.PORT }}\nNODE_ENV=${{ secrets.NODE_ENV }}\nMONGODB_URI=${{ secrets.MONGODB_URI }}\nJWT_SECRET=${{ secrets.JWT_SECRET }}\n' > /home/ubuntu/Donationapp-Backend/.env"
-
-            echo "✅ .env written to $IP"
-          done
-
       - name: Deploy to each instance
         run: |
           for IP in ${{ steps.get-ips.outputs.ips }}; do
@@ -91,6 +76,11 @@ jobs:
                 fi
 
                 cd /home/ubuntu/Donationapp-Backend
+
+                # Write .env AFTER clone/pull so it is never wiped
+                printf 'PORT=${{ secrets.PORT }}\nNODE_ENV=${{ secrets.NODE_ENV }}\nMONGODB_URI=${{ secrets.MONGODB_URI }}\nJWT_SECRET=${{ secrets.JWT_SECRET }}\n' > .env
+                echo '.env written'
+
                 npm install --omit=dev
 
                 if pm2 list | grep -q backend; then
