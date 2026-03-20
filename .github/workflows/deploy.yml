@@ -22,9 +22,10 @@ jobs:
       - name: Write SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key.pem
+          printf '%s\n' '${{ secrets.EC2_SSH_KEY }}' > ~/.ssh/deploy_key.pem
           chmod 600 ~/.ssh/deploy_key.pem
           ssh-keygen -l -f ~/.ssh/deploy_key.pem
+
       - name: Add bastion to known hosts
         run: |
           ssh-keyscan -H ${{ secrets.BASTION_IP }} >> ~/.ssh/known_hosts
@@ -49,7 +50,7 @@ jobs:
         run: |
           echo "=== Key info ==="
           ssh-keygen -l -f ~/.ssh/deploy_key.pem
-          
+
           echo "=== Testing bastion connection ==="
           ssh -i ~/.ssh/deploy_key.pem \
             -o StrictHostKeyChecking=no \
