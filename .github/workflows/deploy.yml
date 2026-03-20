@@ -1,4 +1,4 @@
-name: Deploy backend
+name: Deploy Backend
 
 on:
   push:
@@ -44,45 +44,35 @@ jobs:
 
           echo "ips=$PRIVATE_IPS" >> $GITHUB_OUTPUT
           echo "Found instances: $PRIVATE_IPS"
-              - name: Deploy to each instance
-        env:
-          BASTION_IP: ${{ secrets.BASTION_IP }}
-          PORT: ${{ secrets.PORT }}
-          NODE_ENV: ${{ secrets.NODE_ENV }}
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      - name: Write .env to instances
+        run: |
+          for IP in ${{ steps.get-ips.outputs.ips }}; do
+            echo "Writing .env to $IP..."
+
+            ssh -i ~/.ssh/deploy_key.pem \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=10 \
+              -o ProxyCommand="ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -W %h:%p ubuntu@${{ secrets.BASTION_IP }}" \
+              ubuntu@$IP \
+              "printf 'PORT=${{ secrets.PORT }}\nNODE_ENV=${{ secrets.NODE_ENV }}\nMONGODB_URI=${{ secrets.MONGODB_URI }}\nJWT_SECRET=${{ secrets.JWT_SECRET }}\n' > /home/ubuntu/Donationapp-Backend/.env"
+
+            echo "✅ .env written to $IP"
+          done
+
+      - name: Deploy to each instance
         run: |
           for IP in ${{ steps.get-ips.outputs.ips }}; do
             echo "Deploying to $IP..."
 
             ssh -i ~/.ssh/deploy_key.pem \
-                -o StrictHostKeyChecking=no \
-                -o ConnectTimeout=10 \
-                -o ProxyCommand="ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -W %h:%p ubuntu@$BASTION_IP" \
-                ubuntu@$IP bash << EOF
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=10 \
+              -o ProxyCommand="ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -W %h:%p ubuntu@${{ secrets.BASTION_IP }}" \
+              ubuntu@$IP \
+              "cd /home/ubuntu/Donationapp-Backend && git pull origin main && npm install --omit=dev && pm2 restart backend && pm2 logs backend --lines 10 --nostream"
 
-              # Write .env from GitHub secrets
-              cat > /home/ubuntu/Donationapp-Backend/.env << ENVEOF
-          PORT=$PORT
-          NODE_ENV=$NODE_ENV
-          MONGODB_URI=$MONGODB_URI
-          JWT_SECRET=$JWT_SECRET
-          ENVEOF
-
-              # Verify .env was written
-              echo ".env contents:"
-              cat /home/ubuntu/Donationapp-Backend/.env
-
-              # Deploy
-              cd /home/ubuntu/Donationapp-Backend
-              git pull origin main
-              npm install --omit=dev
-              pm2 restart backend
-              pm2 logs backend --lines 10 --nostream
-
-          EOF
-
-            echo "Done with $IP"
+            echo "✅ Done with $IP"
           done
 
       - name: Cleanup SSH key
