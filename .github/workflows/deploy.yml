@@ -46,18 +46,6 @@ jobs:
           echo "ips=$PRIVATE_IPS" >> $GITHUB_OUTPUT
           echo "Found instances: $PRIVATE_IPS"
 
-      - name: Debug SSH connection
-        run: |
-          echo "=== Key info ==="
-          ssh-keygen -l -f ~/.ssh/deploy_key.pem
-
-          echo "=== Testing bastion connection ==="
-          ssh -i ~/.ssh/deploy_key.pem \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=10 \
-            -v \
-            ubuntu@${{ secrets.BASTION_IP }} "echo BASTION OK"
-
       - name: Write .env to instances
         run: |
           for IP in ${{ steps.get-ips.outputs.ips }}; do
@@ -68,7 +56,7 @@ jobs:
               -o ConnectTimeout=10 \
               -o ProxyCommand="ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -W %h:%p ubuntu@${{ secrets.BASTION_IP }}" \
               ubuntu@$IP \
-              "printf 'PORT=${{ secrets.PORT }}\nNODE_ENV=${{ secrets.NODE_ENV }}\nMONGODB_URI=${{ secrets.MONGODB_URI }}\nJWT_SECRET=${{ secrets.JWT_SECRET }}\n' > /home/ubuntu/Donationapp-Backend/.env"
+              "mkdir -p /home/ubuntu/Donationapp-Backend && printf 'PORT=${{ secrets.PORT }}\nNODE_ENV=${{ secrets.NODE_ENV }}\nMONGODB_URI=${{ secrets.MONGODB_URI }}\nJWT_SECRET=${{ secrets.JWT_SECRET }}\n' > /home/ubuntu/Donationapp-Backend/.env"
 
             echo "✅ .env written to $IP"
           done
@@ -83,7 +71,20 @@ jobs:
               -o ConnectTimeout=10 \
               -o ProxyCommand="ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -W %h:%p ubuntu@${{ secrets.BASTION_IP }}" \
               ubuntu@$IP \
-              "cd /home/ubuntu/Donationapp-Backend && git pull origin main && npm install --omit=dev && pm2 restart backend && pm2 logs backend --lines 10 --nostream"
+              "if [ -d /home/ubuntu/Donationapp-Backend/.git ]; then
+                cd /home/ubuntu/Donationapp-Backend && git pull origin main
+              else
+                git clone https://github.com/Greham-Solanki/Donationapp-Backend.git /home/ubuntu/Donationapp-Backend
+                cd /home/ubuntu/Donationapp-Backend
+              fi
+              cd /home/ubuntu/Donationapp-Backend
+              npm install --omit=dev
+              if pm2 list | grep -q backend; then
+                pm2 restart backend
+              else
+                pm2 start server.js --name backend
+              fi
+              pm2 logs backend --lines 10 --nostream"
 
             echo "✅ Done with $IP"
           done
