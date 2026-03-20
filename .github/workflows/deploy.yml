@@ -45,6 +45,18 @@ jobs:
           echo "ips=$PRIVATE_IPS" >> $GITHUB_OUTPUT
           echo "Found instances: $PRIVATE_IPS"
 
+      - name: Debug SSH connection
+        run: |
+          echo "=== Key info ==="
+          ssh-keygen -l -f ~/.ssh/deploy_key.pem
+          
+          echo "=== Testing bastion connection ==="
+          ssh -i ~/.ssh/deploy_key.pem \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=10 \
+            -v \
+            ubuntu@${{ secrets.BASTION_IP }} "echo BASTION OK"
+            
       - name: Write .env to instances
         run: |
           for IP in ${{ steps.get-ips.outputs.ips }}; do
