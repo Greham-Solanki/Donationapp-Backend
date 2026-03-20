@@ -24,7 +24,9 @@ app.use((req, res, next) => {
 
 // CORS options
 const corsOptions = {
-  origin: 'http://localhost:3000',
+  origin: ['https://dt4vllf2wq2hs.cloudfront.net',
+    'https://giveawaycommunity.dedyn.io',
+    'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
