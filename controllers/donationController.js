@@ -10,7 +10,9 @@ AWS.config.update({
   region: process.env.AWS_REGION,
 });
 
-const s3 = new AWS.S3();
+const s3 = new AWS.S3({
+  region: process.env.AWS_REGION
+});
 
 // Configure Multer to store image in memory
 const upload = multer({ 
@@ -33,8 +35,10 @@ const generateSignedUrl = (key) => {
   if (!key) return null;
   
   const params = {
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: key,
+    Bucket: process.env.AWS_S3_BUCKET,
+     Key: `donations/${Date.now()}-${file.originalname}`,
+    Body: file.buffer,
+    ContentType: file.mimetype,
     Expires: parseInt(process.env.S3_SIGNED_URL_EXPIRATION) || 3600, // Default 1 hour
   };
   
