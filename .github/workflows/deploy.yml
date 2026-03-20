@@ -70,21 +70,37 @@ jobs:
               -o StrictHostKeyChecking=no \
               -o ConnectTimeout=10 \
               -o ProxyCommand="ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -W %h:%p ubuntu@${{ secrets.BASTION_IP }}" \
-              ubuntu@$IP \
-              "if [ -d /home/ubuntu/Donationapp-Backend/.git ]; then
-                cd /home/ubuntu/Donationapp-Backend && git pull origin main
-              else
-                git clone https://github.com/Greham-Solanki/Donationapp-Backend.git /home/ubuntu/Donationapp-Backend
+              ubuntu@$IP "
+                # Load nvm/node into PATH for non-interactive SSH sessions
+                export NVM_DIR=\"\$HOME/.nvm\"
+                [ -s \"\$NVM_DIR/nvm.sh\" ] && source \"\$NVM_DIR/nvm.sh\"
+                export PATH=\"\$PATH:/usr/local/bin:/usr/bin\"
+
+                echo \"Node: \$(node -v)\"
+                echo \"npm: \$(npm -v)\"
+                echo \"pm2: \$(pm2 -v)\"
+
+                # Clone if no git repo, otherwise pull
+                if [ -d /home/ubuntu/Donationapp-Backend/.git ]; then
+                  echo 'Pulling latest code...'
+                  cd /home/ubuntu/Donationapp-Backend && git pull origin main
+                else
+                  echo 'Cloning repo...'
+                  rm -rf /home/ubuntu/Donationapp-Backend
+                  git clone https://github.com/Greham-Solanki/Donationapp-Backend.git /home/ubuntu/Donationapp-Backend
+                fi
+
                 cd /home/ubuntu/Donationapp-Backend
-              fi
-              cd /home/ubuntu/Donationapp-Backend
-              npm install --omit=dev
-              if pm2 list | grep -q backend; then
-                pm2 restart backend
-              else
-                pm2 start server.js --name backend
-              fi
-              pm2 logs backend --lines 10 --nostream"
+                npm install --omit=dev
+
+                if pm2 list | grep -q backend; then
+                  pm2 restart backend
+                else
+                  pm2 start server.js --name backend
+                fi
+
+                pm2 logs backend --lines 10 --nostream
+              "
 
             echo "✅ Done with $IP"
           done
