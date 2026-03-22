@@ -78,7 +78,7 @@ jobs:
                 cd /home/ubuntu/Donationapp-Backend
 
                 # Write .env AFTER clone/pull so it is never wiped
-                printf 'PORT=${{ secrets.PORT }}\nNODE_ENV=${{ secrets.NODE_ENV }}\nMONGODB_URI=${{ secrets.MONGODB_URI }}\nJWT_SECRET=${{ secrets.JWT_SECRET }}\nAWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}\nAWS_REGION=${{ secrets.AWS_REGION }}\n' > .env
+                printf 'PORT=${{ secrets.PORT }}\nNODE_ENV=${{ secrets.NODE_ENV }}\nMONGODB_URI=${{ secrets.MONGODB_URI }}\nJWT_SECRET=${{ secrets.JWT_SECRET }}\nAWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}\nAWS_REGION=${{ secrets.AWS_REGION }}\nS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}\n' > .env
                 echo '.env written'
 
                 npm install --omit=dev
