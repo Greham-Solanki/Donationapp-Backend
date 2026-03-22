@@ -31,15 +31,14 @@ const upload = multer({
 });
 
 // Helper function to generate signed URL
+// Helper function to generate signed URL
 const generateSignedUrl = (key) => {
   if (!key) return null;
   
   const params = {
-    Bucket: process.env.AWS_S3_BUCKET,
-     Key: `donations/${Date.now()}-${file.originalname}`,
-    Body: file.buffer,
-    ContentType: file.mimetype,
-    Expires: parseInt(process.env.S3_SIGNED_URL_EXPIRATION) || 3600, // Default 1 hour
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+    Expires: parseInt(process.env.S3_SIGNED_URL_EXPIRATION) || 3600,
   };
   
   try {
