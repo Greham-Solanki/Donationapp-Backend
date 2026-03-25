@@ -26,74 +26,39 @@ jobs:
           chmod 600 ~/.ssh/deploy_key.pem
           ssh-keygen -l -f ~/.ssh/deploy_key.pem
 
-      - name: Add bastion to known hosts
+      - name: Deploy to ASG via SSM
         run: |
-          ssh-keyscan -H ${{ secrets.BASTION_IP }} >> ~/.ssh/known_hosts
-
-      - name: Get live instance IPs from ASG
-        id: get-ips
-        run: |
+          # 1. Get all InService Instance IDs from the ASG
           INSTANCE_IDS=$(aws autoscaling describe-auto-scaling-groups \
             --auto-scaling-group-names ${{ secrets.ASG_NAME }} \
             --query 'AutoScalingGroups[0].Instances[?LifecycleState==`InService`].InstanceId' \
             --output text)
 
-          PRIVATE_IPS=$(aws ec2 describe-instances \
+          if [ -z "$INSTANCE_IDS" ]; then
+            echo "No InService instances found in ASG!"
+            exit 1
+          fi
+
+          echo "Deploying to instances: $INSTANCE_IDS"
+
+          # 2. Send the deployment commands via SSM
+          # Note: We use a multi-line string for the commands
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
             --instance-ids $INSTANCE_IDS \
-            --query 'Reservations[].Instances[].PrivateIpAddress' \
-            --output text)
-
-          echo "ips=$PRIVATE_IPS" >> $GITHUB_OUTPUT
-          echo "Found instances: $PRIVATE_IPS"
-
-      - name: Deploy to each instance
-        run: |
-          for IP in ${{ steps.get-ips.outputs.ips }}; do
-            echo "Deploying to $IP..."
-
-            ssh -i ~/.ssh/deploy_key.pem \
-              -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=10 \
-              -o ProxyCommand="ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no -W %h:%p ubuntu@${{ secrets.BASTION_IP }}" \
-              ubuntu@$IP "
-                # Load nvm/node into PATH for non-interactive SSH sessions
-                export NVM_DIR=\"\$HOME/.nvm\"
-                [ -s \"\$NVM_DIR/nvm.sh\" ] && source \"\$NVM_DIR/nvm.sh\"
-                export PATH=\"\$PATH:/usr/local/bin:/usr/bin\"
-
-                echo \"Node: \$(node -v)\"
-                echo \"npm: \$(npm -v)\"
-                echo \"pm2: \$(pm2 -v)\"
-
-                # Clone if no git repo, otherwise pull
-                if [ -d /home/ubuntu/Donationapp-Backend/.git ]; then
-                  echo 'Pulling latest code...'
-                  cd /home/ubuntu/Donationapp-Backend && git pull origin main
-                else
-                  echo 'Cloning repo...'
-                  rm -rf /home/ubuntu/Donationapp-Backend
-                  git clone https://github.com/Greham-Solanki/Donationapp-Backend.git /home/ubuntu/Donationapp-Backend
-                fi
-
-                cd /home/ubuntu/Donationapp-Backend
-
-                # Write .env AFTER clone/pull so it is never wiped
-                printf 'PORT=${{ secrets.PORT }}\nNODE_ENV=${{ secrets.NODE_ENV }}\nMONGODB_URI=${{ secrets.MONGODB_URI }}\nJWT_SECRET=${{ secrets.JWT_SECRET }}\nAWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}\nAWS_REGION=${{ secrets.AWS_REGION }}\nS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}\n' > .env
-                echo '.env written'
-
-                npm install --omit=dev
-
-                if pm2 list | grep -q backend; then
-                  pm2 restart backend
-                else
-                  pm2 start server.js --name backend
-                fi
-
-                pm2 logs backend --lines 10 --nostream
-              "
-
-            echo "✅ Done with $IP"
-          done
+            --comment "Deploying Backend Update" \
+            --parameters 'commands=[
+              "export NVM_DIR=\"$HOME/.nvm\"",
+              "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"",
+              "cd /home/ubuntu/Donationapp-Backend",
+              "git fetch --all",
+              "git reset --hard origin/main",
+              "printf \"PORT=${{ secrets.PORT }}\nNODE_ENV=${{ secrets.NODE_ENV }}\nMONGODB_URI=${{ secrets.MONGODB_URI }}\nJWT_SECRET=${{ secrets.JWT_SECRET }}\" > .env",
+              "npm install --omit=dev",
+              "pm2 restart backend || pm2 start server.js --name backend",
+              "pm2 save"
+            ]' \
+            --region ${{ secrets.AWS_REGION }}
 
       - name: Cleanup SSH key
         if: always()
