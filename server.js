@@ -1,10 +1,10 @@
 // // server.js
 require('dotenv').config();
+const cors = require('cors');
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const connectDB = require('./config/db');
-const cors = require('cors');
 const donationRoutes = require('./routes/donationRoutes');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
