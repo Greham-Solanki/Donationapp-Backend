@@ -5,6 +5,10 @@ REST API and real-time WebSocket server for the GiveAway Community donation plat
 
 **Frontend Repo:** [Donationapp--frontend](https://github.com/Greham-Solanki/Donationapp--frontend)
 
+**Project Demo:** [Youtube](https://youtu.be/iWrAFw4k-R8)
+
+**AWS Infrastructure Diagram:** [Diagram](https://github.com/Greham-Solanki/Donationapp-Backend/blob/main/AWS%20Infrastructure%20Diagram.png)
+
 ---
 
 ## Features
